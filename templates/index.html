@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Trends Scraper</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Twitter Trends Scraper</h1>
+        <button onclick="runScraper()" id="scrapeButton">Click here to run the script</button>
+        <div id="results" style="display: none;">
+            <h2>Results</h2>
+            <p id="timestamp"></p>
+            <ul id="trends"></ul>
+            <p id="ipAddress"></p>
+            <div id="jsonData"></div>
+            <button onclick="runScraper()">Click here to run the query again</button>
+        </div>
+        <div id="loading" style="display: none;">
+            Loading... Please wait while we fetch the trends.
+        </div>
+    </div>
+
+    <script>
+        function runScraper() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('scrapeButton').disabled = true;
+
+    fetch('/run-scraper')
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('scrapeButton').disabled = false;
+
+            // Use a default timestamp if undefined
+            const timestamp = data.timestamp || 'Unknown time';
+            document.getElementById('timestamp').textContent =
+                `These are the most happening topics as on ${timestamp}`;
+
+            const trendsList = document.getElementById('trends');
+            trendsList.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const li = document.createElement('li');
+                li.textContent = data[`nameoftrend${i}`] || 'Unable to fetch trend';
+                trendsList.appendChild(li);
+            }
+
+            // Use a default IP if undefined
+            const ipAddress = data.ip_address || 'Unknown IP';
+            document.getElementById('ipAddress').textContent =
+                `The IP address used for this query was ${ipAddress}`;
+
+            document.getElementById('jsonData').innerHTML =
+                `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        })
+        .catch(error => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('scrapeButton').disabled = false;
+
+            // Display error information in a user-friendly way
+            document.getElementById('timestamp').textContent =
+                `Error occurred at ${new Date().toLocaleString()}`;
+            document.getElementById('trends').innerHTML =
+                '<li>Error fetching trends. Please try again later.</li>';
+            document.getElementById('ipAddress').textContent =
+                'Unable to determine IP address';
+            document.getElementById('jsonData').innerHTML =
+                `<pre class="error">${JSON.stringify(error, null, 2)}</pre>`;
+        });
+}
+    </script>
+</body>
+</html>
